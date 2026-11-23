@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prolog Motor-Drive Fault Diagnosis and Maintenance Planning System</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<style>
+ section{scroll-margin-top:70px} .eq{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bs-border-color);padding:2px 6px}
+ .eq .n{min-width:44px;text-align:right;color:var(--bs-secondary-color)} .cv{max-height:340px}
+ .st-true{background:#dc3545}.st-false{background:#198754}.st-unknown{background:#6c757d}.st-excepted{background:#fd7e14}
+</style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg sticky-top bg-body-tertiary border-bottom">
+ <div class="container">
+  <span class="navbar-brand fw-semibold">Motor-Drive Expert System</span>
+  <div class="d-flex gap-2 flex-wrap">
+   <a class="btn btn-sm btn-outline-secondary" href="#model">Model</a>
+   <a class="btn btn-sm btn-outline-secondary" href="#diagnose">Diagnosis</a>
+   <a class="btn btn-sm btn-outline-secondary" href="#profile">Data profiling</a>
+   <a class="btn btn-sm btn-outline-secondary" href="#ablate">Ablation</a>
+   <a class="btn btn-sm btn-outline-secondary" href="#kb">Knowledge base</a>
+   <button id="themeBtn" class="btn btn-sm btn-primary" type="button">Dark mode</button>
+  </div>
+ </div>
+</nav>
+
+<main class="container py-4">
+<header class="mb-4">
+ <h1 class="h3">Explainable Prolog Expert System for Industrial Electric Motor-Drive Fault Diagnosis and Corrective Maintenance Planning</h1>
+ <p class="text-body-secondary mb-2">MSc Knowledge Representation and Reasoning, Mini-Project 24. All diagnostic reasoning (deduction, abduction, consistency-based diagnosis, explanation and maintenance planning) executes in SWI-Prolog; this page only collects data and draws results.</p>
+ <div class="row g-2 small">
+  <div class="col-md-3"><span class="badge text-bg-primary">standard</span> published standard limit</div>
+  <div class="col-md-3"><span class="badge text-bg-info">literature</span> peer-reviewed or technical source</div>
+  <div class="col-md-3"><span class="badge text-bg-warning">assumption</span> engineering assumption</div>
+  <div class="col-md-3"><span class="badge text-bg-secondary">synthetic</span> presets are synthetic test cases</div>
+ </div>
+</header>
+
+<section id="model" class="mb-5">
+ <h2 class="h4">1. Engineering and diagnostic model</h2>
+ <p>Observation vector <span data-k="\mathbf{x}=[V_L,I_L,P_e,PF,s,T_h,T_{amb},T_b,V_{RMS},V_{1x},V_{2x},A_{sb},A_{BPFO},A_{ecc},A_{load},V_{ax},V_{2f_s},I_{asym},PI,V_{unb},I_{unb},THD_I,\dot m_c]^{T}"></span>. Fault universe <span data-k="F=\{F_{SB},F_{SR},F_{BR},F_{BB},F_{MI},F_{UM},F_{VFD},F_{IG},F_{ME},F_{CO},F_{TH},F_I,F_N\}"></span>. Each fault weight set follows the signature table in the knowledge-base section; confidence is the weighted fraction of known evidence that is true (equation 39). Equations are defined below with symbols: <span data-k="V_L"></span> line voltage (V), <span data-k="I_L"></span> line current (A), <span data-k="N_r"></span> rotor speed (rpm), <span data-k="p"></span> poles, <span data-k="f_s"></span> supply frequency (Hz), <span data-k="d,D"></span> rolling-element and pitch diameters, <span data-k="\varphi"></span> contact angle, <span data-k="n"></span> number of rolling elements. In equation 49, <span data-k="p_p"></span> is the number of pole pairs and <span data-k="m"></span> a positive integer; <span data-k="I_{pk}^{\pm}"></span> are the positive and negative phase-current peaks; <span data-k="f_{osc}"></span> is the load-oscillation frequency; <span data-k="\sigma"></span> is the threshold scale that shifts each limit <span data-k="L_k"></span> in the sensitivity analysis.</p>
+ <div id="eqs" class="border rounded"></div>
+</section>
+
+<section id="diagnose" class="mb-5">
+ <h2 class="h4">2. Diagnosis from observations</h2>
+ <div class="mb-2 d-flex flex-wrap gap-2">
+  <button class="btn btn-sm btn-outline-primary" data-preset="normal">Normal</button>
+  <button class="btn btn-sm btn-outline-primary" data-preset="rotor">Rotor fault</button>
+  <button class="btn btn-sm btn-outline-primary" data-preset="bearing">Bearing fault</button>
+  <button class="btn btn-sm btn-outline-primary" data-preset="multi">Insulation and cooling (multiple)</button>
+  <button class="btn btn-sm btn-outline-primary" data-preset="sensor">Instrumentation fault</button>
+  <button class="btn btn-sm btn-outline-primary" data-preset="ecc">Eccentricity</button>
+  <button class="btn btn-sm btn-outline-primary" data-preset="gate">Inverter gating</button>
+  <button class="btn btn-sm btn-outline-primary" data-preset="coupling">Coupling or load</button>
+  <button class="btn btn-sm btn-outline-primary" data-preset="missing">Incomplete evidence</button>
+  <button class="btn btn-sm btn-outline-primary" data-preset="noisy">Add 5% noise</button>
+ </div>
+ <form id="obsForm" class="row g-2"></form>
+ <div class="row g-2 mt-1 align-items-end">
+  <div class="col-6 col-md-3"><label class="form-label small mb-0">Reasoning mode</label><select id="selMode" class="form-select form-select-sm"><option value="full">Complete system</option><option value="ded">Deductive only</option><option value="ded_abd">Deductive + abductive</option><option value="ded_cons">Deductive + consistency</option></select></div>
+  <div class="col-6 col-md-3"><label class="form-label small mb-0">Threshold scale &sigma;</label><input id="scale" type="number" step="0.05" value="1" class="form-control form-control-sm"></div>
+  <div class="col-12 col-md-6"><label class="form-label small mb-0">Drop knowledge groups (fault ids, comma separated)</label><input id="dropIds" class="form-control form-control-sm" placeholder="fth,fmi"></div>
+ </div>
+ <p class="small text-body-secondary mt-2">Leave a field empty to mark the observation as missing. Operating load is used by the default-and-exception rules.</p>
+ <button id="runBtn" class="btn btn-primary mb-3" type="button">Run Prolog diagnosis</button>
+ <div id="result" class="d-none">
+  <div id="verdict" class="alert alert-info"></div>
+  <div class="row g-3">
+   <div class="col-lg-6"><div class="card"><div class="card-body"><canvas id="chConf" class="cv"></canvas>
+     <button class="btn btn-sm btn-outline-secondary mt-2" data-dl="chConf">Download PNG</button></div></div></div>
+   <div class="col-lg-6"><div class="card"><div class="card-body"><canvas id="chDev" class="cv"></canvas>
+     <button class="btn btn-sm btn-outline-secondary mt-2" data-dl="chDev">Download PNG</button></div></div></div>
+  </div>
+  <h3 class="h5 mt-4">Evaluated conditions</h3>
+  <div class="table-responsive"><table class="table table-sm" id="tCond"></table></div>
+  <div class="row g-3">
+   <div class="col-lg-6"><h3 class="h5">Explanation trace</h3><div id="expl"></div></div>
+   <div class="col-lg-6"><h3 class="h5">Maintenance plan</h3><div id="plan"></div></div>
+  </div>
+  <div class="row g-3 mt-1">
+   <div class="col-lg-6"><h3 class="h5">Abductive explanations (minimum cardinality)</h3><div id="abd"></div></div>
+   <div class="col-lg-6"><h3 class="h5">Consistency-based diagnoses (minimal hitting sets)</h3><div id="cons"></div></div>
+  </div>
+  <h3 class="h5 mt-3">Rejected hypotheses</h3><div id="rej"></div>
+  <button id="dlJson" class="btn btn-sm btn-outline-secondary mt-3" type="button">Download result as JSON</button>
+ </div>
+</section>
+
+<section id="profile" class="mb-5">
+ <h2 class="h4">3. Data profiling and batch evaluation</h2>
+ <p>Paste CSV or upload a file. Column names must match the observation keys shown in section 2; an optional <code>truth</code> column (for example <code>fth</code> or <code>fmi+fth</code>) enables the confusion matrix and metrics.</p>
+ <div class="d-flex flex-wrap gap-2 mb-2">
+  <input type="file" id="csvFile" accept=".csv,text/csv" class="form-control form-control-sm w-auto">
+  <button id="tmplBtn" class="btn btn-sm btn-outline-secondary" type="button">Download CSV template</button>
+  <button id="profBtn" class="btn btn-sm btn-primary" type="button">Profile data</button>
+  <button id="batchBtn" class="btn btn-sm btn-success" type="button">Run Prolog on every row</button>
+ </div>
+ <textarea id="csvText" class="form-control font-monospace mb-3" rows="5" placeholder="load,vl,il,pf,pe,th,tamb,truth"></textarea>
+ <div class="table-responsive"><table class="table table-sm" id="tProf"></table></div>
+ <div class="row g-3">
+  <div class="col-lg-6 d-none" id="histBox"><div class="card"><div class="card-body">
+   <select id="histCol" class="form-select form-select-sm w-auto mb-2"></select>
+   <canvas id="chHist" class="cv"></canvas><button class="btn btn-sm btn-outline-secondary mt-2" data-dl="chHist">Download PNG</button></div></div></div>
+  <div class="col-lg-6 d-none" id="clsBox"><div class="card"><div class="card-body">
+   <canvas id="chCls" class="cv"></canvas><button class="btn btn-sm btn-outline-secondary mt-2" data-dl="chCls">Download PNG</button></div></div></div>
+ </div>
+ <div id="batchOut" class="mt-3"></div>
+</section>
+
+<section id="ablate" class="mb-5">
+ <h2 class="h4">4. Ablation and sensitivity analysis</h2>
+ <p>Reasoning modes, dropped knowledge groups and the threshold scale are applied inside Prolog. The run uses the loaded CSV when it has a <code>truth</code> column, otherwise the built-in synthetic suite. Synthetic results show behaviour, not independent validation.</p>
+ <button id="ablBtn" class="btn btn-primary" type="button">Run ablation and sensitivity</button>
+ <div class="row g-3 mt-1"><div class="col-lg-7"><div class="card"><div class="card-body"><canvas id="chAbl" class="cv"></canvas><button class="btn btn-sm btn-outline-secondary mt-2" data-dl="chAbl">Download PNG</button></div></div></div><div class="col-lg-5" id="ablOut"></div></div>
+</section>
+
+<section id="kb" class="mb-5">
+ <h2 class="h4">5. Knowledge base (served live from Prolog)</h2>
+ <h3 class="h6">Condition rules, thresholds and provenance</h3>
+ <div class="table-responsive"><table class="table table-sm" id="tKbC"></table></div>
+ <h3 class="h6">Fault signatures: weights and maintenance actions</h3>
+ <div class="table-responsive"><table class="table table-sm" id="tKbS"></table></div>
+</section>
+</main>
+
+<script>
+const EQ=[
+"P_{3\\phi}=\\sqrt{3}V_LI_LPF","S=\\sqrt{3}V_LI_L","Q=\\sqrt{S^2-P^2}","PF=\\dfrac{P}{S}","\\omega_m=\\dfrac{2\\pi N_r}{60}",
+"P_{mech}=\\tau_L\\omega_m","\\eta_m=\\dfrac{P_{mech}}{P_{in}}","f_s=\\dfrac{pN_s}{120}","s=\\dfrac{N_s-N_r}{N_s}","N_s=\\dfrac{120f_s}{p}",
+"P_{cu,s}=3I_s^2R_s","P_{cu,r}=sP_{ag}","P_{core}=P_h+P_e","P_{loss}=P_{cu,s}+P_{cu,r}+P_{core}+P_{mech}+P_{stray}","P_{out}=P_{in}-P_{loss}",
+"T_h=T_{amb}+\\theta P_{loss}","\\dot Q_{cool}=\\dot m_cc_{p,c}(T_{out}-T_{in})","V_{RMS}=\\sqrt{\\dfrac1n\\sum_{i=1}^{n}v_i^2}","I_{RMS}=\\sqrt{\\dfrac1n\\sum_{i=1}^{n}i_i^2}",
+"V_{unb}=100\\dfrac{\\max(V_a,V_b,V_c)-\\bar V}{\\bar V}","I_{unb}=100\\dfrac{\\max(I_a,I_b,I_c)-\\bar I}{\\bar I}","THD_I=\\dfrac{\\sqrt{\\sum_{h=2}^{H}I_h^2}}{I_1}","THD_V=\\dfrac{\\sqrt{\\sum_{h=2}^{H}V_h^2}}{V_1}",
+"P_{loss,VFD}=P_{in,VFD}-P_{out,VFD}","T_j=T_c+P_{loss,dev}R_{\\theta}","E_{ins}=\\dfrac{V_{test}}{d}","Re=\\dfrac{\\rho vD}{\\mu}",
+"f_{sb}=(1\\pm2s)f_s","f_r=\\dfrac{N_r}{60}","f_{BPFO}=\\dfrac n2f_r\\left(1-\\dfrac dD\\cos\\varphi\\right)","f_{BPFI}=\\dfrac n2f_r\\left(1+\\dfrac dD\\cos\\varphi\\right)","f_{BSF}=\\dfrac D{2d}f_r\\left[1-\\left(\\dfrac dD\\cos\\varphi\\right)^2\\right]",
+"PI=\\dfrac{R_{10\\,min}}{R_{1\\,min}}","\\Delta T_{rise}=T_h-T_{amb}","P_{res}=100\\dfrac{|P_e-\\sqrt3V_LI_LPF|}{P_e}",
+"r_x=\\dfrac{x-x_{ref}}{x_{ref}}","z_x=\\dfrac{x-\\mu_x}{\\sigma_x}","E(F_k)=\\sum_{j=1}^{m}w_je_j(F_k)","C(F_k)=\\dfrac{E(F_k)}{\\sum_{j\\in K}w_j}",
+"KB\\cup E\\models F","D\\cup KB\\models E","KB\\cup D\\cup E\\not\\models\\bot","D^{*}=\\arg\\min_{D}|D|",
+"Accuracy=\\dfrac{TP+TN}{TP+TN+FP+FN}","Precision=\\dfrac{TP}{TP+FP}","Recall=\\dfrac{TP}{TP+FN}","F_1=\\dfrac{2\\,Precision\\cdot Recall}{Precision+Recall}","Coverage=\\dfrac{N_{diagnosed}}{N_{cases}}","f_{ecc}=\\left[1\\pm m\\dfrac{1-s}{p_p}\\right]f_s","r_{2x}=\\dfrac{V_{2x}}{V_{1x}}","I_{asym}=100\\dfrac{|I_{pk}^{+}-I_{pk}^{-}|}{I_{pk}^{+}+I_{pk}^{-}}","f_{load}=f_s\\pm f_{osc}","L_k^{\\prime}=L_k+|L_k|(\\sigma-1)"];
+const FLD=[["load","Load ratio","p.u.",0.8],["vl","V<sub>L</sub>","V",400],["il","I<sub>L</sub>","A",38],["pf","PF","",0.86],["pe","P<sub>e</sub>","kW",22.6],
+["vunb","V<sub>unb</sub>","%",0.4],["iunb","I<sub>unb</sub>","%",3],["thdi","THD<sub>I</sub>","%",4],["vdc","dc ripple","%",2],["slip","s","%",1.8],
+["th","T<sub>h</sub>","°C",105],["tamb","T<sub>amb</sub>","°C",30],["fan","Coolant flow","p.u.",1],["vrms","V<sub>RMS,vib</sub>","mm/s",1.2],
+["v1x","V<sub>1x</sub>","mm/s",0.8],["v2x","V<sub>2x</sub>","mm/s",0.3],["sb","A<sub>sb</sub>","dB",-62],["bpfo","A<sub>BPFO</sub>","dB",3],["tb","T<sub>b</sub>","°C",62],["vax","V<sub>ax</sub>","mm/s",0.5],["sbl","A<sub>load</sub>","dB",-65],["ecc","A<sub>ecc</sub>","dB",-65],["v2fs","V<sub>2fs</sub>","mm/s",0.2],["iasym","I<sub>asym</sub>","%",2],["pi","PI","",3.5]];
+const PRE={normal:{},rotor:{sb:-38,slip:4.2,vrms:3.1},bearing:{bpfo:18,tb:96,vrms:3.4},multi:{pi:1.4,fan:0.5,th:170},sensor:{pe:30,th:20},
+ ecc:{ecc:-40,v2fs:1.3},gate:{iasym:35,thdi:11,iunb:12},coupling:{sbl:-38,vax:2.6,vrms:3.0},
+ missing:{sb:"",bpfo:"",pi:"",v1x:"",v2x:"",tb:"",vdc:""}};
+const REF=Object.fromEntries(FLD.map(f=>[f[0],f[3]]));
+const $=s=>document.querySelector(s);
+const kx=(t,d)=>katex.renderToString(t,{throwOnError:false,displayMode:!!d});
+let last=null,charts={};
+
+function boot(){
+ $("#eqs").innerHTML=EQ.map((e,i)=>`<div class="eq"><span>${kx(e)}</span><span class="n">(${i+1})</span></div>`).join("");
+ document.querySelectorAll("[data-k]").forEach(e=>e.innerHTML=kx(e.dataset.k));
+ $("#obsForm").innerHTML=FLD.map(f=>`<div class="col-6 col-md-3 col-lg-2"><label class="form-label small mb-0">${f[1]} <span class="text-body-secondary">${f[2]}</span></label><input class="form-control form-control-sm" id="f_${f[0]}" type="number" step="any" value="${f[3]}"></div>`).join("");
+ fetch("/api/kb").then(r=>r.json()).then(kbTables);
+}
+function kbTables(k){
+ const b={standard:"primary",literature:"info",assumption:"warning"};
+ $("#tKbC").innerHTML="<thead><tr><th>Condition</th><th>Variable</th><th>Rule</th><th>Type</th><th>Source</th></tr></thead><tbody>"+
+  k.conditions.map(c=>`<tr><td>${c.id}</td><td>${c.variable}</td><td>${c.op} ${c.limit}</td><td><span class="badge text-bg-${b[c.type]}">${c.type}</span></td><td>${c.source}</td></tr>`).join("")+"</tbody>";
+ const nm=Object.fromEntries(k.faults.map(f=>[f.id,f.name]));
+ $("#tKbS").innerHTML="<thead><tr><th>Fault</th><th>Signature (condition: weight)</th><th>Maintenance action</th><th>Priority</th></tr></thead><tbody>"+
+  k.plans.map(p=>`<tr><td>${nm[p.fault]}</td><td>${k.signatures.filter(s=>s.fault==p.fault).map(s=>s.condition+": "+s.weight).join("; ")}</td><td>${p.action}</td><td>${p.priority}</td></tr>`).join("")+"</tbody>";
+}
+function readForm(){const o={};FLD.forEach(f=>{const v=$("#f_"+f[0]).value;if(v!=="")o[f[0]]=parseFloat(v)});return o}
+function preset(n){
+ FLD.forEach(f=>$("#f_"+f[0]).value=f[3]);
+ if(n==="noisy"){FLD.forEach(f=>{if(f[0]!=="load")$("#f_"+f[0]).value=+(f[3]*(1+(Math.random()-.5)*.1)).toFixed(3)});return}
+ const p=PRE[n]||{};Object.keys(p).forEach(k=>$("#f_"+k).value=p[k]);
+}
+const post=o=>fetch("/api/diagnose",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(o)}).then(r=>r.json());
+const col=()=>({t:getComputedStyle(document.body).color,g:getComputedStyle(document.body).getPropertyValue("--bs-border-color")});
+function mk(id,cfg){if(charts[id])charts[id].destroy();Chart.defaults.color=col().t;Chart.defaults.borderColor=col().g;charts[id]=new Chart($("#"+id),cfg)}
+
+async function run(){
+ last={obs:readForm()};last.res=await post({...last.obs,...ctl()});show();
+}
+function show(){
+ const r=last.res,o=last.obs;$("#result").classList.remove("d-none");
+ const nm={};r.faults.forEach(f=>nm[f.id]=f.name);nm.fn="Normal operation";nm.unresolved="Unresolved: abnormal evidence but no hypothesis reaches the acceptance threshold";
+ $("#verdict").innerHTML="<strong>Diagnosis:</strong> "+r.diagnosis.map(d=>nm[d]).join(" and ")+` <span class="text-body-secondary">(basis: ${r.basis}; Prolog reasoning time ${r.ms.toFixed(2)} ms)</span>`;
+ mk("chConf",{type:"bar",data:{labels:r.faults.map(f=>f.name),datasets:[{label:"Confidence C(Fk)",data:r.faults.map(f=>+f.confidence.toFixed(3)),backgroundColor:r.faults.map(f=>r.diagnosis.includes(f.id)?"#dc3545":"#0d6efd")}]},
+  options:{indexAxis:"y",scales:{x:{min:0,max:1}},plugins:{title:{display:true,text:"Fault confidence"},legend:{display:false}}}});
+ const ks=Object.keys(o).filter(k=>k!=="load"&&REF[k]);
+ mk("chDev",{type:"bar",data:{labels:ks,datasets:[{label:"r(x)",data:ks.map(k=>+((o[k]-REF[k])/Math.abs(REF[k])).toFixed(3)),backgroundColor:"#6f42c1"}]},
+  options:{plugins:{title:{display:true,text:"Relative deviation from healthy reference"},legend:{display:false}}}});
+ $("#tCond").innerHTML="<thead><tr><th>Condition</th><th>Variable</th><th>Value</th><th>Rule</th><th>State</th></tr></thead><tbody>"+
+  r.conditions.map(c=>`<tr><td>${c.id}</td><td>${c.variable}</td><td>${c.value==null?"-":(+c.value).toFixed(2)}</td><td>${c.op} ${c.limit}</td><td><span class="badge st-${c.state}">${c.state}</span></td></tr>`).join("")+"</tbody>";
+ $("#expl").innerHTML=r.explanation.map(e=>`<div class="card mb-2"><div class="card-body p-2"><strong>${nm[e.id]}</strong><ul class="mb-0 small">`+
+  e.evidence.map(v=>`<li>Rule ${v.rule}: ${v.variable} = ${(+v.value).toFixed(2)} ${v.op} ${v.limit} (weight ${v.weight}, ${v.type}: ${v.source})</li>`).join("")+"</ul></div></div>").join("")||"<em>No fault diagnosed.</em>";
+ $("#plan").innerHTML=r.plan.map(p=>`<div class="card mb-2"><div class="card-body p-2"><strong>${nm[p.id]}</strong> <span class="badge text-bg-${p.priority=="high"?"danger":"warning"}">${p.priority}</span><br>${p.action}<br><span class="small text-body-secondary">Verification: ${p.verification}</span></div></div>`).join("")||"<em>Continue routine condition monitoring.</em>";
+ const L=a=>a.length?"<ol class='small'>"+a.map(x=>"<li>{"+x.faults.map(f=>nm[f]).join(", ")+"}"+(x.score!=null?` (summed confidence ${x.score.toFixed(2)})`:"")+"</li>").join("")+"</ol>":"<em>None required.</em>";
+ $("#abd").innerHTML=L(r.abductive);$("#cons").innerHTML=L(r.consistency);
+ $("#rej").innerHTML=r.rejected.length?"<ul class='small'>"+r.rejected.map(x=>`<li>${nm[x.id]} (confidence ${x.confidence.toFixed(2)}): ${x.reason}</li>`).join("")+"</ul>":"<em>None.</em>";
+}
+function dl(id){
+ const c=$("#"+id),t=document.createElement("canvas");t.width=c.width;t.height=c.height;const x=t.getContext("2d");
+ x.fillStyle=getComputedStyle(document.body).backgroundColor;x.fillRect(0,0,t.width,t.height);x.drawImage(c,0,0);
+ save(t.toDataURL("image/png"),id+".png");
+}
+function save(u,n){const a=document.createElement("a");a.href=u;a.download=n;a.click()}
+function saveText(t,n,m){save(URL.createObjectURL(new Blob([t],{type:m})),n)}
+
+/* ---- profiling ---- */
+function parseCSV(t){const L=t.trim().split(/\r?\n/).filter(x=>x.trim());if(L.length<2)return null;const h=L[0].split(",").map(s=>s.trim());
+ return{h,rows:L.slice(1).map(l=>{const c=l.split(",");const o={};h.forEach((k,i)=>o[k]=(c[i]||"").trim());return o})}}
+function stats(a){const n=a.length,m=a.reduce((s,v)=>s+v,0)/n,sd=Math.sqrt(a.reduce((s,v)=>s+(v-m)**2,0)/Math.max(n-1,1));const s=[...a].sort((x,y)=>x-y);
+ return{n,m,sd,min:s[0],med:s[Math.floor(n/2)],max:s[n-1],out:sd>0?a.filter(v=>Math.abs((v-m)/sd)>3).length:0}}
+function profile(){
+ const d=parseCSV($("#csvText").value);if(!d)return alert("Provide CSV with a header and at least one row.");
+ const num=d.h.filter(h=>d.rows.some(r=>r[h]!==""&&!isNaN(r[h])));
+ $("#tProf").innerHTML="<thead><tr><th>Variable</th><th>n</th><th>Missing</th><th>Mean</th><th>SD</th><th>Min</th><th>Median</th><th>Max</th><th>Outliers |z|&gt;3</th></tr></thead><tbody>"+
+  num.map(h=>{const a=d.rows.map(r=>r[h]).filter(v=>v!==""&&!isNaN(v)).map(Number),s=stats(a);return`<tr><td>${h}</td><td>${s.n}</td><td>${d.rows.length-s.n}</td><td>${s.m.toFixed(3)}</td><td>${s.sd.toFixed(3)}</td><td>${s.min}</td><td>${s.med}</td><td>${s.max}</td><td>${s.out}</td></tr>`}).join("")+"</tbody>";
+ $("#histBox").classList.remove("d-none");$("#histCol").innerHTML=num.map(h=>`<option>${h}</option>`).join("");hist(d);
+}
+function hist(d){
+ d=d||parseCSV($("#csvText").value);const h=$("#histCol").value,a=d.rows.map(r=>r[h]).filter(v=>v!==""&&!isNaN(v)).map(Number);if(!a.length)return;
+ const mn=Math.min(...a),mx=Math.max(...a),k=Math.min(10,Math.max(3,Math.ceil(Math.sqrt(a.length)))),w=(mx-mn)/k||1,b=Array(k).fill(0);
+ a.forEach(v=>b[Math.min(k-1,Math.floor((v-mn)/w))]++);
+ mk("chHist",{type:"bar",data:{labels:b.map((_,i)=>(mn+i*w).toFixed(2)),datasets:[{label:h,data:b,backgroundColor:"#20c997"}]},options:{plugins:{title:{display:true,text:"Histogram of "+h},legend:{display:false}}}});
+}
+async function batch(){
+ const d=parseCSV($("#csvText").value);if(!d)return alert("Provide CSV data first.");
+ const out=[];
+ for(const r of d.rows){const o={};Object.keys(r).forEach(k=>{if(r[k]!==""&&!isNaN(r[k]))o[k]=+r[k]});const res=await post({...o,...ctl()});
+  out.push({truth:r.truth||null,pred:[...res.diagnosis].sort().join("+"),ms:res.ms,expl:res.explanation.length>0||res.diagnosis[0]=="fn",plan:res.plan.length>0||res.diagnosis[0]=="fn"})}
+ const N=out.length,lab=[...new Set(out.flatMap(x=>x.truth?[x.truth,x.pred]:[x.pred]))].sort();
+ let h="<div class='table-responsive'><table class='table table-sm'><thead><tr><th>Row</th><th>Truth</th><th>Predicted</th><th>ms</th></tr></thead><tbody>"+out.map((x,i)=>`<tr><td>${i+1}</td><td>${x.truth||"-"}</td><td>${x.pred}</td><td>${x.ms.toFixed(2)}</td></tr>`).join("")+"</tbody></table></div>";
+ const ms=out.map(x=>x.ms),cov=out.filter(x=>x.pred!="unresolved").length/N;
+ let m=`<tr><td>Coverage</td><td>${cov.toFixed(3)}</td></tr><tr><td>Mean reasoning time (ms)</td><td>${(ms.reduce((a,b)=>a+b,0)/N).toFixed(3)}</td></tr><tr><td>Maximum reasoning time (ms)</td><td>${Math.max(...ms).toFixed(3)}</td></tr><tr><td>ExplainabilityRate</td><td>${(out.filter(x=>x.expl).length/N).toFixed(3)}</td></tr><tr><td>PlanValidity (plan present)</td><td>${(out.filter(x=>x.plan).length/N).toFixed(3)}</td></tr>`;
+ const lt=out.filter(x=>x.truth);
+ if(lt.length){
+  const cm={};lab.forEach(a=>{cm[a]={};lab.forEach(b=>cm[a][b]=0)});lt.forEach(x=>cm[x.truth][x.pred]++);
+  const acc=lt.filter(x=>x.truth==x.pred).length/lt.length;
+  const cl=lab.filter(c=>lt.some(x=>x.truth==c)).map(c=>{const tp=cm[c][c],fp=lab.reduce((s,a)=>s+(a!=c?cm[a][c]:0),0),fn=lab.reduce((s,b)=>s+(b!=c?cm[c][b]:0),0);
+   const p=tp+fp?tp/(tp+fp):0,r=tp+fn?tp/(tp+fn):0;return{c,p,r,f:p+r?2*p*r/(p+r):0}});
+  const av=k=>(cl.reduce((s,x)=>s+x[k],0)/cl.length).toFixed(3);
+  m=`<tr><td>Accuracy</td><td>${acc.toFixed(3)}</td></tr><tr><td>Macro precision</td><td>${av("p")}</td></tr><tr><td>Macro recall</td><td>${av("r")}</td></tr><tr><td>Macro F1</td><td>${av("f")}</td></tr>`+m;
+  h+="<h3 class='h6'>Confusion matrix (rows truth, columns predicted)</h3><div class='table-responsive'><table class='table table-sm table-bordered'><thead><tr><th></th>"+lab.map(l=>`<th>${l}</th>`).join("")+"</tr></thead><tbody>"+
+   lab.map(a=>`<tr><th>${a}</th>`+lab.map(b=>`<td class="${cm[a][b]?(a==b?"table-success":"table-danger"):""}">${cm[a][b]}</td>`).join("")+"</tr>").join("")+"</tbody></table></div>";
+  h+="<h3 class='h6'>Class-wise performance</h3><table class='table table-sm'><thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead><tbody>"+cl.map(x=>`<tr><td>${x.c}</td><td>${x.p.toFixed(3)}</td><td>${x.r.toFixed(3)}</td><td>${x.f.toFixed(3)}</td></tr>`).join("")+"</tbody></table>";
+  $("#clsBox").classList.remove("d-none");
+  mk("chCls",{type:"bar",data:{labels:cl.map(x=>x.c),datasets:[{label:"Precision",data:cl.map(x=>x.p),backgroundColor:"#0d6efd"},{label:"Recall",data:cl.map(x=>x.r),backgroundColor:"#fd7e14"},{label:"F1",data:cl.map(x=>x.f),backgroundColor:"#198754"}]},options:{scales:{y:{min:0,max:1}},plugins:{title:{display:true,text:"Class-wise performance"}}}});
+ }
+ $("#batchOut").innerHTML="<h3 class='h6'>Metrics</h3><table class='table table-sm w-auto'><tbody>"+m+"</tbody></table>"+h+"<button id='dlCsv' class='btn btn-sm btn-outline-secondary'>Download predictions CSV</button>";
+ $("#dlCsv").onclick=()=>saveText("row,truth,predicted,ms\n"+out.map((x,i)=>[i+1,x.truth||"",x.pred,x.ms.toFixed(3)].join(",")).join("\n"),"predictions.csv","text/csv");
+}
+
+/* ---- ablation and sensitivity ---- */
+const SUITE=[["normal","fn"],["rotor","fsr"],["bearing","fbr"],["multi","fmi+fth"],["sensor","fi"],["ecc","fme"],["gate","fig"],["coupling","fco"],["missing","fn"]],COL=["#0d6efd","#fd7e14","#198754","#dc3545"];
+function presetObj(n){const o={};FLD.forEach(f=>o[f[0]]=f[3]);const p=PRE[n]||{};Object.keys(p).forEach(k=>{if(p[k]==="")delete o[k];else o[k]=p[k]});return o}
+const ctl=()=>({mode:$("#selMode").value,scale:parseFloat($("#scale").value)||1,drop:$("#dropIds").value.split(",").map(s=>s.trim()).filter(Boolean)});
+async function ablate(){
+ const d=parseCSV($("#csvText").value);let cs,src;
+ if(d&&d.rows.some(r=>r.truth)){cs=d.rows.filter(r=>r.truth).map(r=>{const o={};Object.keys(r).forEach(k=>{if(r[k]!==""&&!isNaN(r[k]))o[k]=+r[k]});return{o,t:r.truth}});src="loaded CSV"}
+ else{cs=SUITE.map(([n,t])=>({o:presetObj(n),t}));src="built-in synthetic suite"}
+ const run=async x=>{let ok=0,cv=0,ms=0;for(const c of cs){const r=await post({...c.o,...x});const p=[...r.diagnosis].sort().join("+");if(p==c.t)ok++;if(p!="unresolved")cv++;ms+=r.ms}return{a:ok/cs.length,c:cv/cs.length,t:ms/cs.length}};
+ const modes=[["ded","Deductive only"],["ded_abd","Deductive + abductive"],["ded_cons","Deductive + consistency"],["full","Complete system"]],sc=[0.8,0.9,1,1.1,1.2],R={};
+ $("#ablOut").innerHTML="Running on "+src+" ("+cs.length+" cases)...";
+ for(const [m] of modes){R[m]=[];for(const s of sc)R[m].push(await run({mode:m,scale:s}))}
+ const base=R.full[2].a,dr=[];
+ for(const f of ["fsb","fsr","fbr","fbb","fmi","fum","fvfd","fth","fi","fig","fme","fco"])dr.push([f,await run({mode:"full",scale:1,drop:[f]})]);
+ mk("chAbl",{type:"line",data:{labels:sc.map(s=>"σ = "+s),datasets:modes.map(([m,l],i)=>({label:l,data:R[m].map(x=>x.a),borderColor:COL[i],backgroundColor:COL[i],tension:.2}))},options:{scales:{y:{min:0,max:1.05,title:{display:true,text:"Accuracy"}}},plugins:{title:{display:true,text:"Sensitivity to threshold scale"}}}});
+ $("#ablOut").innerHTML=`<p class="small">Source: ${src}, ${cs.length} cases.</p><table class="table table-sm"><thead><tr><th>Mode (σ = 1)</th><th>Accuracy</th><th>Coverage</th><th>Mean ms</th></tr></thead><tbody>`+modes.map(([m,l])=>`<tr><td>${l}</td><td>${R[m][2].a.toFixed(3)}</td><td>${R[m][2].c.toFixed(3)}</td><td>${R[m][2].t.toFixed(3)}</td></tr>`).join("")+
+ `</tbody></table><table class="table table-sm"><thead><tr><th>Knowledge group removed</th><th>Accuracy</th><th>Change</th></tr></thead><tbody>`+dr.map(([f,x])=>`<tr><td>${f}</td><td>${x.a.toFixed(3)}</td><td>${(x.a-base).toFixed(3)}</td></tr>`).join("")+"</tbody></table>";
+}
+
+/* ---- events ---- */
+document.addEventListener("DOMContentLoaded",()=>{
+ const t=localStorage.getItem("theme");if(t){document.documentElement.dataset.bsTheme=t}syncBtn();
+ if(window.katex)boot();else window.addEventListener("load",boot);
+ $("#themeBtn").onclick=()=>{const n=document.documentElement.dataset.bsTheme=="dark"?"light":"dark";document.documentElement.dataset.bsTheme=n;localStorage.setItem("theme",n);syncBtn();
+  if(last)show();if($("#csvText").value&&!$("#histBox").classList.contains("d-none"))hist()};
+ $("#runBtn").onclick=run;$("#ablBtn").onclick=ablate;$("#profBtn").onclick=profile;$("#batchBtn").onclick=batch;$("#histCol").onchange=()=>hist();
+ document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>preset(b.dataset.preset));
+ document.querySelectorAll("[data-dl]").forEach(b=>b.onclick=()=>dl(b.dataset.dl));
+ $("#dlJson").onclick=()=>saveText(JSON.stringify(last,null,2),"diagnosis.json","application/json");
+ $("#csvFile").onchange=e=>{const f=e.target.files[0];if(f)f.text().then(t=>$("#csvText").value=t)};
+ $("#tmplBtn").onclick=()=>saveText(FLD.map(f=>f[0]).join(",")+",truth\n"+FLD.map(f=>f[3]).join(",")+",fn\n","template.csv","text/csv");
+});
+function syncBtn(){$("#themeBtn").textContent=document.documentElement.dataset.bsTheme=="dark"?"Light mode":"Dark mode"}
+</script>
+</body>
+</html>
